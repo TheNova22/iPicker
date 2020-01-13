@@ -103,6 +103,7 @@ class ViewController: UIViewController , UIImagePickerControllerDelegate , UINav
             print((pic?.getPixelColor(pos: cgp))!)
         }
         img()
+        print("Success")
     }
     
 }
