@@ -8,33 +8,35 @@
 
 import UIKit
 extension UIImage {
-    func getPixelColor(pos: CGPoint) -> UIColor {
+    func getPixelColorAtPoint(point: CGPoint, sourceView: UIView) -> UIColor {
+        let pixel = UnsafeMutablePointer<CUnsignedChar>.allocate(capacity: 4)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
+        let context = CGContext(data: pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4, space: colorSpace, bitmapInfo: bitmapInfo.rawValue)
 
-        let pixelData = self.cgImage!.dataProvider!.data
-        let data: UnsafePointer<UInt8> = CFDataGetBytePtr(pixelData)
+        context!.translateBy(x: -point.x, y: -point.y)
 
-        let pixelInfo: Int = ((Int(self.size.width) * Int(pos.y)) + Int(pos.x)) * 4
-
-        let r = CGFloat(data[pixelInfo]) / CGFloat(255.0)
-        let g = CGFloat(data[pixelInfo+1]) / CGFloat(255.0)
-        let b = CGFloat(data[pixelInfo+2]) / CGFloat(255.0)
-        let a = CGFloat(data[pixelInfo+3]) / CGFloat(255.0)
-
-        return UIColor(red: r , green: g, blue: b, alpha: a)
-    }
-
-}
+        sourceView.layer.render(in: context!)
+        let color: UIColor = UIColor(red: CGFloat(pixel[0])/255.0,
+                                     green: CGFloat(pixel[1])/255.0,
+                                     blue: CGFloat(pixel[2])/255.0,
+                                     alpha: CGFloat(pixel[3])/255.0)
+        pixel.deallocate()
+        return color
+    }}
 
 class ViewController: UIViewController , UIImagePickerControllerDelegate , UINavigationControllerDelegate , UIScrollViewDelegate {
     @IBOutlet weak var Scroll: UIScrollView!
     @IBOutlet weak var myImageView: UIImageView!
      var ranOnce = false
-    
+    @IBOutlet weak var Preview: UILabel!
+  @IBOutlet weak var Selectef: UISwitch!
     override func viewDidLoad() {
         super.viewDidLoad()
                 Scroll.delegate = self
         Scroll.minimumZoomScale = 1.0
         Scroll.maximumZoomScale = 100.0
+        Selectef.isOn = false
     }
     @IBAction func Importer(_ sender: Any) {
         let image = UIImagePickerController()
@@ -86,6 +88,7 @@ class ViewController: UIViewController , UIImagePickerControllerDelegate , UINav
     func viewForZooming(in Scroll : UIScrollView) -> UIView? {
         return self.myImageView
     }
+    
     @objc func dragGesture(_ gesture : UIPanGestureRecognizer) {
         let orignalCenter = CGPoint(x: self.myImageView.bounds.width/2, y: self.myImageView.bounds.height/2)
         let translation = gesture.translation(in: self.myImageView)
@@ -96,15 +99,19 @@ class ViewController: UIViewController , UIImagePickerControllerDelegate , UINav
             label.center = orignalCenter
         }
         func img(){
-            let x = label.center.x + translation.x
-            let y = label.center.y + translation.y
-            let cgp = CGPoint(x: x, y: y)
-            let pic = myImageView.image
-            print((pic?.getPixelColor(pos: cgp))!)
-        }
-        img()
-        print("Success")
+                 let x = label.center.x + translation.x
+                 let y = label.center.y + translation.y
+                 let cgp = CGPoint(x: x, y: y)
+                 let pic = myImageView.image
+                 let bro = pic?.getPixelColorAtPoint(point: cgp, sourceView: myImageView)
+                 Preview.backgroundColor = bro
+                 print(bro!)
+                 
+         }
+             img()
+        
     }
-    
 }
+    
+
 
